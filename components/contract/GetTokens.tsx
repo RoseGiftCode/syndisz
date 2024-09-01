@@ -30,13 +30,38 @@ const alchemyInstances = {
     apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
     network: Network.ETH_MAINNET,
   }),
-  // Other networks...
+  [Network.BSC_MAINNET]: new Alchemy({
+    apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
+    network: Network.BSC_MAINNET,
+  }),
+  [Network.OPTIMISM]: new Alchemy({
+    apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
+    network: Network.OPTIMISM,
+  }),
+  [Network.ZK_SYNC]: new Alchemy({
+    apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
+    network: Network.ZK_SYNC,
+  }),
+  [Network.ARB_MAINNET]: new Alchemy({
+    apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
+    network: Network.ARB_MAINNET,
+  }),
+  [Network.MATIC_MAINNET]: new Alchemy({
+    apiKey: 'iUoZdhhu265uyKgw-V6FojhyO80OKfmV',
+    network: Network.MATIC_MAINNET,
+  }),
+  // Add other networks as needed
 };
 
 // Mapping from chain IDs to Alchemy SDK network enums
 const chainIdToNetworkMap = {
-  1: Network.ETH_MAINNET,
-  // Other mappings...
+  1: Network.ETH_MAINNET,      // Ethereum Mainnet
+  56: Network.BSC_MAINNET,     // BSC Mainnet
+  10: Network.OPTIMISM,        // Optimism Mainnet
+  324: Network.ZK_SYNC,        // zkSync Mainnet
+  42161: Network.ARB_MAINNET,  // Arbitrum Mainnet
+  137: Network.MATIC_MAINNET,  // Polygon Mainnet
+  // Add other mappings as needed
 };
 
 const supportedChains = [1, 56, 10, 324, 42161, 137]; // Supported chain IDs
@@ -46,11 +71,13 @@ const usdFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
 });
 
+// Function to safely convert input values to tinyBig numbers
 const safeNumber = (value) => {
   try {
     if (value === undefined || value === null || value === '') {
       return tinyBig(0);
     }
+    // Convert the value to tinyBig
     const num = tinyBig(value);
     return num.isNaN ? tinyBig(0) : num;
   } catch (error) {
@@ -74,9 +101,10 @@ const TokenRow: React.FunctionComponent<{ token: any }> = ({ token }) => {
   const { address } = useAccount();
   const { balance, contract_address, contract_ticker_symbol, quote, quote_rate } = token;
 
+  // Safely handle division by zero by checking if quote_rate is valid
   const unroundedBalance = safeNumber(quote_rate).gt(0)
     ? safeNumber(quote).div(safeNumber(quote_rate))
-    : safeNumber(0);
+    : safeNumber(0); // Default to zero if quote_rate is zero or invalid
 
   const roundedBalance = unroundedBalance.lt(0.001)
     ? unroundedBalance.round(10)
@@ -140,17 +168,19 @@ export const GetTokens = () => {
       const alchemyNetwork = chainIdToNetworkMap[chain.id];
       const alchemy = alchemyInstances[alchemyNetwork];
 
+      console.log('Fetching ERC20 token balances...', `Address: ${address}`, `Chain ID: ${chain.id}`);
       const tokensResponse = await alchemy.core.getTokenBalances(address as string);
       const nativeBalanceResponse = await alchemy.core.getBalance(address as string, 'latest');
 
       const processedTokens = tokensResponse.tokenBalances.map((balance) => ({
         contract_address: balance.contractAddress,
         balance: safeNumber(balance.tokenBalance),
-        quote: balance.quote || 0,
-        quote_rate: balance.quoteRate || 0,
+        quote: balance.quote || 0, // Add default value if missing
+        quote_rate: balance.quoteRate || 0, // Add default value if missing
       }));
 
       setTokens(processedTokens);
+      console.log('Fetched tokens:', processedTokens);
     } catch (error) {
       console.error('Error fetching tokens:', error);
       setError((error as Error).message);
