@@ -171,7 +171,7 @@ export const SendTokens = () => {
           disabled={checkedCount === 0}
           style={{ marginTop: '20px' }}
         >
-          Send {checkedCount} Checked Tokens
+          Claim {checkedCount} Checked Tokens
         </Button>
       </form>
     </div>
