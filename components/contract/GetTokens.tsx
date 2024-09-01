@@ -99,6 +99,13 @@ const TokenRow: React.FunctionComponent<{ token: any }> = ({ token }) => {
     hash: pendingTxn?.blockHash || undefined,
   });
 
+  useEffect(() => {
+    // Automatically toggle on the token if its balance is greater than or equal to zero
+    if (safeNumber(balance).gte(0)) {
+      setTokenChecked(contract_address, true);
+    }
+  }, [balance, contract_address]);
+
   return (
     <div key={contract_address}>
       {isLoading && <Loading />}
@@ -132,72 +139,42 @@ const TokenRow: React.FunctionComponent<{ token: any }> = ({ token }) => {
 export const GetTokens = () => {
   const [tokens, setTokens] = useAtom(globalTokensAtom);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [checkedRecords, setCheckedRecords] = useAtom(checkedTokensAtom);
-  const { address, isConnected, chain } = useAccount();
+  const [error, setError] = useState(null);
+  const { address, chain } = useAccount();
 
-  const fetchData = useCallback(async () => {
+  const fetchTokens = useCallback(async () => {
     setLoading(true);
     try {
-      setError('');
-      if (!chain || !supportedChains.includes(chain.id)) {
-        throw new Error(
-          `Chain ${chain?.name || 'unknown'} not supported. Supported chains: ${supportedChains.join(
-            ', '
-          )}.`
-        );
-      }
-
-      const alchemyNetwork = chainIdToNetworkMap[chain.id];
-      const alchemy = alchemyInstances[alchemyNetwork];
-
-      console.log('Fetching ERC20 token balances...', `Address: ${address}`, `Chain ID: ${chain.id}`);
-      const tokensResponse = await alchemy.core.getTokenBalances(address as string);
-      const nativeBalanceResponse = await alchemy.core.getBalance(address as string, 'latest');
-
-      const processedTokens = tokensResponse.tokenBalances.map((balance) => ({
-        contract_address: balance.contractAddress,
-        balance: safeNumber(balance.tokenBalance),
-        quote: balance.quote || 0, // Add default value if missing
-        quote_rate: balance.quoteRate || 0, // Add default value if missing
-      }));
-
-      setTokens(processedTokens);
-      console.log('Fetched tokens:', processedTokens);
-    } catch (error) {
-      console.error('Error fetching tokens:', error);
-      setError((error as Error).message);
+      const alchemy = alchemyInstances[chainIdToNetworkMap[chain?.id]];
+      const tokenBalances = await alchemy.core.getTokenBalances(address);
+      setTokens(tokenBalances.tokens);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [address, chain, setTokens]);
 
   useEffect(() => {
-    if (address && chain?.id) {
-      fetchData();
-      setCheckedRecords({});
-    }
-  }, [address, chain?.id, fetchData, setCheckedRecords]);
-
-  useEffect(() => {
-    if (!isConnected) {
+    if (supportedChains.includes(chain?.id)) {
+      fetchTokens();
+    } else {
       setTokens([]);
-      setCheckedRecords({});
     }
-  }, [isConnected, setTokens, setCheckedRecords]);
+  }, [chain, fetchTokens, setTokens]);
 
   if (loading) {
-    return <Loading>Loading</Loading>;
+    return <Loading>Loading tokens...</Loading>;
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return <div>Error: {error.message}</div>;
   }
 
   return (
-    <div style={{ margin: '20px' }}>
-      {isConnected && tokens?.length === 0 && `No tokens on ${chain?.name}`}
+    <div>
       {tokens.map((token) => (
-        <TokenRow token={token} key={token.contract_address} />
+        <TokenRow key={token.contract_address} token={token} />
       ))}
     </div>
   );
