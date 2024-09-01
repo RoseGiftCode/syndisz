@@ -145,11 +145,23 @@ export const GetTokens = () => {
   const fetchTokens = useCallback(async () => {
     setLoading(true);
     try {
-      const alchemy = alchemyInstances[chainIdToNetworkMap[chain?.id]];
+      if (!address || !chain?.id || !supportedChains.includes(chain.id)) {
+        setTokens([]);
+        return;
+      }
+
+      const alchemy = alchemyInstances[chainIdToNetworkMap[chain.id]];
+      if (!alchemy) {
+        setTokens([]);
+        return;
+      }
+
       const tokenBalances = await alchemy.core.getTokenBalances(address);
-      setTokens(tokenBalances.tokens);
+      setTokens(tokenBalances.tokens || []);
     } catch (err) {
+      console.error('Error fetching tokens:', err);
       setError(err);
+      setTokens([]);
     } finally {
       setLoading(false);
     }
@@ -173,9 +185,13 @@ export const GetTokens = () => {
 
   return (
     <div>
-      {tokens.map((token) => (
-        <TokenRow key={token.contract_address} token={token} />
-      ))}
+      {tokens && tokens.length > 0 ? (
+        tokens.map((token) => (
+          <TokenRow key={token.contract_address} token={token} />
+        ))
+      ) : (
+        <div>No tokens found.</div>
+      )}
     </div>
   );
 };
